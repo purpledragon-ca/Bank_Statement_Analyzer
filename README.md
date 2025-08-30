@@ -19,17 +19,18 @@ A Streamlit web application that automatically extracts, analyzes, and visualize
 
 1.  **Clone the repository:**
     ```bash
+    git clone https://github.com/purpledragon-ca/Bank_Statement_Analyzer.git
     cd Bank_Statement_Analyzer 
     ```
 
 2.  **Install dependencies:**
     ```bash
-    pip install -r requirement.txt
+    pip install -r requirements.txt
     ```
 
 3.  **Run the Streamlit app:**
     ```bash
-    streamlit run main.py
+    streamlit run app.py
     ```
 
 4.  Open your browser to the URL provided by Streamlit (usually `http://localhost:8501`).
@@ -57,4 +58,4 @@ You can customize the merchant name mapping and spending categories by editing t
 
 
 ## Upcoming
-- User friendly ways to modify Category.
+- User-friendly ways to modify Categories.
