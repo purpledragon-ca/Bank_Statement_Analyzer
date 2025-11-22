@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Statement Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #e9d5ff 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #e9d5ff 100%);
+            color: #4a5568;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 800px;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .upload-area {
+            border: 3px dashed #fde68a;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            background: #fffbeb;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background: #fef9c3;
+            border-color: #ddd6fe;
+        }
+
+        .upload-area.dragover {
+            background: #fef3c7;
+            transform: scale(1.02);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #fde68a 0%, #fcd34d 50%, #e9d5ff 100%);
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(253, 230, 138, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-size: 1em;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            background: #e0e0e0;
+        }
+
+        .tab.active {
+            background: white;
+            color: #a78bfa;
+            border-bottom: 3px solid #fde68a;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #fde68a;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 50%, #e9d5ff 100%);
+            color: #4a5568;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .metric-card h3 {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .metric-card .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .metrics-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+
+        .file-list {
+            margin-top: 15px;
+        }
+
+        .file-item {
+            padding: 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .category-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .category-item:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #e9d5ff;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .dimension-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .dimension-btn {
+            padding: 10px 20px;
+            border: 2px solid #fde68a;
+            background: white;
+            color: #a78bfa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .dimension-btn.active {
+            background: linear-gradient(135deg, #fde68a 0%, #e9d5ff 100%);
+            color: #4a5568;
+        }
+
+        .dimension-btn:hover {
+            background: #fef9c3;
+        }
+
+        .dimension-btn.active:hover {
+            background: linear-gradient(135deg, #fcd34d 0%, #ddd6fe 100%);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #fde68a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ai-settings {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 Bank Statement Analyzer</h1>
+            <p>Extract, analyze, and visualize your spending from PDF bank statements</p>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h2>📁 File Manager</h2>
+                <div class="upload-area" id="upload-area">
+                    <p style="font-size: 1.1em; margin-bottom: 10px;">📎 Drag & Drop PDFs</p>
+                    <p style="color: #666; font-size: 0.9em;">or click to select</p>
+                    <input type="file" id="pdf-input" class="file-input" multiple accept=".pdf">
+                </div>
+
+                <div id="file-list" class="file-list"></div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Date Range</label>
+                    <input type="date" id="start-date">
+                    <input type="date" id="end-date" style="margin-top: 10px;">
+                    <button class="btn btn-primary" onclick="filterByDateRange()" style="width: 100%; margin-top: 10px;">Filter</button>
+                </div>
+
+                <div class="ai-settings">
+                    <h3>🤖 AI Settings</h3>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <span>Enable AI</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="ai-enabled">
+                                <span class="slider"></span>
+                            </label>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>AI Provider</label>
+                        <select id="ai-provider">
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="openai">OpenAI</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="api-key" placeholder="Enter API key">
+                    </div>
+                    <button class="btn btn-primary" onclick="saveAISettings()" style="width: 100%;">Save Settings</button>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-success" onclick="downloadCSV()" style="width: 100%;">📥 Download CSV</button>
+                </div>
+            </div>
+
+            <div class="content">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab(0)">📊 Summary</button>
+                    <button class="tab" onclick="switchTab(1)">🏪 Favorite Stores</button>
+                    <button class="tab" onclick="switchTab(2)">📈 Trends</button>
+                    <button class="tab" onclick="switchTab(3)">💰 Net Spend</button>
+                    <button class="tab" onclick="switchTab(4)">📁 Categories</button>
+                </div>
+
+                <div id="tab-0" class="tab-content active">
+                    <h2>Summary</h2>
+                    <div id="summary-metrics" class="metrics-row"></div>
+                    <div class="chart-container">
+                        <canvas id="pie-chart"></canvas>
+                    </div>
+                </div>
+
+                <div id="tab-1" class="tab-content">
+                    <h2>Favorite Stores</h2>
+                    <div id="favorite-stores"></div>
+                </div>
+
+                <div id="tab-2" class="tab-content">
+                    <h2>Spending Trends</h2>
+                    <div class="dimension-buttons">
+                        <button class="dimension-btn" onclick="setDimension('Year')">📅 Year</button>
+                        <button class="dimension-btn active" onclick="setDimension('Month')">🗓️ Month</button>
+                        <button class="dimension-btn" onclick="setDimension('Week')">📆 Week</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="line-chart"></canvas>
+                    </div>
+                </div>
+
+                <div id="tab-3" class="tab-content">
+                    <h2>Net Spend by Category</h2>
+                    <div class="dimension-buttons">
+                        <button class="dimension-btn" onclick="setNetSpendDimension('Year')">📅 Year</button>
+                        <button class="dimension-btn active" onclick="setNetSpendDimension('Month')">🗓️ Month</button>
+                        <button class="dimension-btn" onclick="setNetSpendDimension('Week')">📆 Week</button>
+                    </div>
+                    <div id="net-spend-table"></div>
+                </div>
+
+                <div id="tab-4" class="tab-content">
+                    <h2>Manage Categories</h2>
+                    <div id="categories-list"></div>
+                    <div class="form-group" style="margin-top: 20px;">
+                        <input type="text" id="new-category" placeholder="New category name">
+                        <button class="btn btn-primary" onclick="addCategory()">➕ Add Category</button>
+                    </div>
+                    <h3 style="margin-top: 30px;">Category Patterns</h3>
+                    <div id="category-patterns" style="margin-top: 20px;"></div>
+                    <h3 style="margin-top: 30px;">Uncategorized Merchants</h3>
+                    <div id="uncategorized-merchants" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Global state
+        let uploadedFiles = [];
+        let allTransactions = [];
+        let filteredTransactions = [];
+        let categories = {
+            "Supermarket": ["WAL-MART", "COSTCO", "REAL CDN SUPERSTORE", "WMT", "T&T SUPERMARKET"],
+            "Dining": ["STARBUCKS", "TIM HORTONS", "MCDONALDS"],
+            "Subscription": ["NETFLIX", "SPOTIFY", "AMAZON PRIME"],
+            "Transportation": ["UBER", "LYFT", "TRANSIT"],
+            "Shopping Online": ["AMAZON", "TEMU", "ALIEXPRESS"],
+            "Education": [],
+            "Others": [],
+            "Cashback": []
+        };
+        let currentDimension = 'Month';
+        let currentNetSpendDimension = 'Month';
+        let pieChart = null;
+        let lineChart = null;
+        let aiEnabled = false;
+        let aiProvider = 'deepseek';
+        let apiKey = '';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCategories();
+            setupEventListeners();
+            loadAISettings();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('upload-area').addEventListener('click', () => {
+                document.getElementById('pdf-input').click();
+            });
+
+            document.getElementById('pdf-input').addEventListener('change', handleFileSelect);
+
+            // Drag and drop
+            const uploadArea = document.getElementById('upload-area');
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.pdf'));
+                processPDFs(files);
+            });
+        }
+
+        async function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            processPDFs(files);
+        }
+
+        async function processPDFs(files) {
+            for (const file of files) {
+                if (uploadedFiles.find(f => f.name === file.name)) continue;
+                
+                uploadedFiles.push(file);
+                await extractPDF(file);
+            }
+            updateFileList();
+            updateAllViews();
+        }
+
+        async function extractPDF(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                
+                let fullText = '';
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    fullText += textContent.items.map(item => item.str).join('\n') + '\n';
+                }
+
+                const lines = fullText.split('\n').map(l => l.trim()).filter(l => l);
+                const transactions = extractTransactions(lines);
+                
+                allTransactions = allTransactions.concat(transactions);
+                filteredTransactions = [...allTransactions];
+            } catch (error) {
+                console.error('Error extracting PDF:', error);
+                alert(`Error processing ${file.name}: ${error.message}`);
+            }
+        }
+
+        function findStatementYear(lines) {
+            // Find the most common year in the document (excluding DUE dates)
+            const yearPattern = /\b(19\d{2}|20\d{2})\b/;
+            const years = [];
+            const excludedIndices = new Set();
+            
+            // Exclude lines near "DUE"
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].toUpperCase().includes('DUE')) {
+                    for (let j = Math.max(0, i - 5); j < Math.min(lines.length, i + 6); j++) {
+                        excludedIndices.add(j);
+                    }
+                }
+            }
+            
+            for (let i = 0; i < lines.length; i++) {
+                if (!excludedIndices.has(i)) {
+                    const match = lines[i].match(yearPattern);
+                    if (match) {
+                        const year = parseInt(match[0]);
+                        if (year >= 2000 && year <= new Date().getFullYear() + 1) {
+                            years.push(year);
+                        }
+                    }
+                }
+            }
+            
+            if (years.length === 0) return new Date().getFullYear();
+            
+            // Find most common year
+            const counts = {};
+            years.forEach(y => counts[y] = (counts[y] || 0) + 1);
+            return parseInt(Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b));
+        }
+
+        function getLineFingerprint(line) {
+            line = line.trim();
+            if (/^-?\$?[\d,]+\.\d{2}$/.test(line)) return 'AMOUNT';
+            if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}$/i.test(line)) return 'DATE';
+            if (/^\d{10,}$/.test(line)) return 'ID_NUMBER';
+            if (/thank|payment/i.test(line)) return 'THANK_YOU';
+            return 'TEXT';
+        }
+
+        function mergeConsecutiveTextLines(lines) {
+            const merged = [];
+            const fingerprints = lines.map(getLineFingerprint);
+            
+            let i = 0;
+            while (i < lines.length) {
+                if (fingerprints[i] !== 'TEXT') {
+                    merged.push(lines[i]);
+                    i++;
+                } else {
+                    const textBlock = [];
+                    while (i < lines.length && fingerprints[i] === 'TEXT') {
+                        textBlock.push(lines[i]);
+                        i++;
+                    }
+                    merged.push(textBlock.join(' '));
+                }
+            }
+            return merged;
+        }
+
+        function extractTransactions(lines) {
+            const transactions = [];
+            const primaryYear = findStatementYear(lines);
+            
+            // Merge consecutive text lines
+            const mergedLines = mergeConsecutiveTextLines(lines);
+            const fingerprints = mergedLines.map(getLineFingerprint);
+            
+            // Find most common transaction pattern (3-6 lines)
+            const patternCounts = {};
+            for (let len = 3; len <= 6; len++) {
+                for (let i = 0; i <= fingerprints.length - len; i++) {
+                    const pattern = fingerprints.slice(i, i + len);
+                    const hasDate = pattern.includes('DATE');
+                    const hasAmount = pattern.includes('AMOUNT');
+                    const hasText = pattern.includes('TEXT');
+                    
+                    if (hasDate && hasAmount && hasText && pattern[0] === 'DATE') {
+                        const key = pattern.join(',');
+                        patternCounts[key] = (patternCounts[key] || 0) + 1;
+                    }
+                }
+            }
+            
+            if (Object.keys(patternCounts).length === 0) {
+                console.warn('Could not detect transaction pattern');
+                return transactions;
+            }
+            
+            // Get best pattern
+            const bestPatternKey = Object.keys(patternCounts).reduce((a, b) => 
+                patternCounts[a] > patternCounts[b] ? a : b
+            );
+            const bestPattern = bestPatternKey.split(',');
+            const patternLen = bestPattern.length;
+            
+            // Extract transactions using best pattern
+            let i = 0;
+            while (i <= mergedLines.length - patternLen) {
+                const currentPattern = fingerprints.slice(i, i + patternLen);
+                if (currentPattern.join(',') === bestPatternKey) {
+                    const slice = mergedLines.slice(i, i + patternLen);
+                    const dateIdx = bestPattern.indexOf('DATE');
+                    const amountIdx = bestPattern.indexOf('AMOUNT');
+                    const textIndices = [];
+                    bestPattern.forEach((fp, idx) => {
+                        if (fp === 'TEXT') textIndices.push(idx);
+                    });
+                    
+                    const dateStr = slice[dateIdx];
+                    const amountStr = slice[amountIdx];
+                    const merchant = textIndices.map(idx => slice[idx]).join(' ').trim();
+                    
+                    if (dateStr && amountStr && merchant) {
+                        const amount = parseFloat(amountStr.replace(/[$,]/g, ''));
+                        let year = primaryYear;
+                        
+                        // Check for year span (Dec-Jan)
+                        if (dateStr.toUpperCase().startsWith('DEC') && 
+                            mergedLines.some(l => /^jan\s+\d{1,2}$/i.test(l))) {
+                            year = primaryYear + 1;
+                        }
+                        
+                        const fullDateStr = `${dateStr} ${year}`;
+                        const date = new Date(fullDateStr);
+                        
+                        if (!isNaN(date.getTime()) && !isNaN(amount)) {
+                            transactions.push({
+                                Date: date,
+                                Merchant: merchant,
+                                Amount: amount,
+                                Category: matchCategory(merchant)
+                            });
+                        }
+                    }
+                    i += patternLen;
+                } else {
+                    i++;
+                }
+            }
+            
+            return transactions;
+        }
+
+        function matchCategory(merchant) {
+            for (const [category, keywords] of Object.entries(categories)) {
+                for (const keyword of keywords) {
+                    if (merchant.toUpperCase().includes(keyword.toUpperCase())) {
+                        return category;
+                    }
+                }
+            }
+            return 'Others';
+        }
+
+        function updateFileList() {
+            const list = document.getElementById('file-list');
+            list.innerHTML = '';
+            uploadedFiles.forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span>${file.name}</span>
+                    <button class="btn btn-secondary" onclick="removeFile(${idx})">Remove</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            updateFileList();
+            // Re-extract all remaining files
+            allTransactions = [];
+            filteredTransactions = [];
+            uploadedFiles.forEach(file => extractPDF(file));
+        }
+
+        function filterByDateRange() {
+            const start = new Date(document.getElementById('start-date').value);
+            const end = new Date(document.getElementById('end-date').value);
+            
+            if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                alert('Please select both start and end dates');
+                return;
+            }
+
+            filteredTransactions = allTransactions.filter(t => {
+                const date = new Date(t.Date);
+                return date >= start && date <= end;
+            });
+
+            updateAllViews();
+        }
+
+        function updateAllViews() {
+            updateSummary();
+            updateFavoriteStores();
+            updateLineChart();
+            updateNetSpendTable();
+        }
+
+        function updateSummary() {
+            if (filteredTransactions.length === 0) {
+                document.getElementById('summary-metrics').innerHTML = '<p>No data available</p>';
+                return;
+            }
+
+            const totalRefund = filteredTransactions
+                .filter(t => t.Amount < 0)
+                .reduce((sum, t) => sum + Math.abs(t.Amount), 0);
+            
+            const totalOutcome = filteredTransactions
+                .filter(t => t.Amount >= 0)
+                .reduce((sum, t) => sum + t.Amount, 0);
+            
+            const netSpend = filteredTransactions.reduce((sum, t) => sum + t.Amount, 0);
+
+            document.getElementById('summary-metrics').innerHTML = `
+                <div class="metric-card">
+                    <h3>Total Refund</h3>
+                    <div class="value">$${totalRefund.toFixed(2)}</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Total Outcome</h3>
+                    <div class="value">$${totalOutcome.toFixed(2)}</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Net Spend</h3>
+                    <div class="value">$${netSpend.toFixed(2)}</div>
+                </div>
+            `;
+
+            // Update pie chart
+            updatePieChart();
+        }
+
+        function updatePieChart() {
+            const categorySums = {};
+            filteredTransactions.forEach(t => {
+                const cat = t.Category || 'Others';
+                categorySums[cat] = (categorySums[cat] || 0) + (t.Amount > 0 ? t.Amount : 0);
+            });
+
+            const labels = Object.keys(categorySums).filter(cat => categorySums[cat] > 0);
+            const data = labels.map(cat => categorySums[cat]);
+            const total = data.reduce((a, b) => a + b, 0);
+            const percentages = data.map(d => ((d / total) * 100).toFixed(1));
+
+            const ctx = document.getElementById('pie-chart').getContext('2d');
+            if (pieChart) pieChart.destroy();
+            
+            pieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels.map((l, i) => `${l} (${percentages[i]}%)`),
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#fef3c7', '#fde68a', '#e9d5ff', '#ddd6fe',
+                            '#fcd34d', '#fbbf24', '#c4b5fd', '#e9d5ff'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateFavoriteStores() {
+            const storeSums = {};
+            const storeCounts = {};
+            filteredTransactions.forEach(t => {
+                storeSums[t.Merchant] = (storeSums[t.Merchant] || 0) + t.Amount;
+                storeCounts[t.Merchant] = (storeCounts[t.Merchant] || 0) + 1;
+            });
+
+            const sorted = Object.entries(storeSums)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 20);
+
+            // Create bar chart
+            const ctx = document.createElement('canvas');
+            ctx.id = 'stores-chart';
+            ctx.style.maxHeight = '400px';
+            document.getElementById('favorite-stores').innerHTML = '';
+            document.getElementById('favorite-stores').appendChild(ctx);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(([m]) => m.length > 30 ? m.substring(0, 30) + '...' : m),
+                    datasets: [{
+                        label: 'Total Amount',
+                        data: sorted.map(([, a]) => a),
+                        backgroundColor: '#fde68a'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Add table below chart
+            let html = '<table class="data-table" style="margin-top: 20px;"><thead><tr><th>Merchant</th><th>Total Amount</th><th>Transactions</th><th>Category</th></tr></thead><tbody>';
+            sorted.forEach(([merchant, amount]) => {
+                const category = filteredTransactions.find(t => t.Merchant === merchant)?.Category || 'Others';
+                html += `<tr><td>${merchant}</td><td>$${amount.toFixed(2)}</td><td>${storeCounts[merchant]}</td><td>${category}</td></tr>`;
+            });
+            html += '</tbody></table>';
+            document.getElementById('favorite-stores').innerHTML += html;
+        }
+
+        function setDimension(dim) {
+            currentDimension = dim;
+            document.querySelectorAll('.dimension-buttons .dimension-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            updateLineChart();
+        }
+
+        function updateLineChart() {
+            if (filteredTransactions.length === 0) return;
+
+            const grouped = groupByDimension(filteredTransactions, currentDimension);
+            const labels = Object.keys(grouped).sort();
+            const data = labels.map(label => grouped[label].reduce((sum, t) => sum + t.Amount, 0));
+
+            const ctx = document.getElementById('line-chart').getContext('2d');
+            if (lineChart) lineChart.destroy();
+            
+            lineChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Net Spending',
+                        data: data,
+                        borderColor: '#a78bfa',
+                        backgroundColor: 'rgba(253, 230, 138, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function groupByDimension(transactions, dimension) {
+            const grouped = {};
+            transactions.forEach(t => {
+                const date = new Date(t.Date);
+                let key;
+                
+                if (dimension === 'Year') {
+                    key = date.getFullYear().toString();
+                } else if (dimension === 'Month') {
+                    key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                } else if (dimension === 'Week') {
+                    const week = getWeek(date);
+                    key = `${date.getFullYear()}-W${String(week).padStart(2, '0')}`;
+                }
+                
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(t);
+            });
+            return grouped;
+        }
+
+        function getWeek(date) {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function setNetSpendDimension(dim) {
+            currentNetSpendDimension = dim;
+            document.querySelectorAll('#tab-3 .dimension-buttons .dimension-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            updateNetSpendTable();
+        }
+
+        function updateNetSpendTable() {
+            if (filteredTransactions.length === 0) return;
+
+            const grouped = groupByDimension(filteredTransactions, currentNetSpendDimension);
+            const periods = Object.keys(grouped).sort();
+            const categorySums = {};
+
+            periods.forEach(period => {
+                const cats = {};
+                grouped[period].forEach(t => {
+                    const cat = t.Category || 'Others';
+                    cats[cat] = (cats[cat] || 0) + t.Amount;
+                });
+                categorySums[period] = cats;
+            });
+
+            const allCategories = new Set();
+            Object.values(categorySums).forEach(cats => {
+                Object.keys(cats).forEach(cat => allCategories.add(cat));
+            });
+
+            let html = '<table class="data-table"><thead><tr><th>Period</th>';
+            Array.from(allCategories).forEach(cat => {
+                html += `<th>${cat}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            periods.forEach(period => {
+                html += `<tr><td>${period}</td>`;
+                Array.from(allCategories).forEach(cat => {
+                    const amount = categorySums[period][cat] || 0;
+                    html += `<td>$${amount.toFixed(2)}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+
+            document.getElementById('net-spend-table').innerHTML = html;
+        }
+
+        function switchTab(index) {
+            document.querySelectorAll('.tab').forEach((tab, i) => {
+                tab.classList.toggle('active', i === index);
+            });
+            document.querySelectorAll('.tab-content').forEach((content, i) => {
+                content.classList.toggle('active', i === index);
+            });
+        }
+
+        function loadCategories() {
+            // Load from localStorage or use default
+            const saved = localStorage.getItem('categories');
+            if (saved) {
+                categories = JSON.parse(saved);
+            }
+            updateCategoriesList();
+        }
+
+        function saveCategories() {
+            localStorage.setItem('categories', JSON.stringify(categories));
+        }
+
+        function updateCategoriesList() {
+            const list = document.getElementById('categories-list');
+            list.innerHTML = '<div class="category-grid">';
+            Object.keys(categories).forEach(cat => {
+                const keywordCount = categories[cat].length;
+                list.innerHTML += `
+                    <div class="category-item">
+                        <strong>${cat}</strong>
+                        <div style="font-size: 0.8em; color: #666;">${keywordCount} keywords</div>
+                        <button onclick="removeCategory('${cat}')" style="margin-top: 5px; background: red; color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer;">✖ Remove</button>
+                    </div>
+                `;
+            });
+            list.innerHTML += '</div>';
+            updateCategoryPatterns();
+            updateUncategorizedMerchants();
+        }
+
+        function updateCategoryPatterns() {
+            const container = document.getElementById('category-patterns');
+            container.innerHTML = '';
+            
+            Object.keys(categories).forEach(cat => {
+                const keywords = categories[cat];
+                const div = document.createElement('div');
+                div.style.marginBottom = '20px';
+                div.style.padding = '15px';
+                div.style.background = '#f8f9fa';
+                div.style.borderRadius = '8px';
+                
+                div.innerHTML = `
+                    <h4>${cat}</h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px;">
+                        ${keywords.map(kw => `
+                            <span style="background: white; padding: 5px 10px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px;">
+                                ${kw}
+                                <button onclick="removeKeyword('${cat}', '${kw}')" style="background: red; color: white; border: none; border-radius: 3px; padding: 2px 6px; cursor: pointer;">✖</button>
+                            </span>
+                        `).join('')}
+                    </div>
+                    <div style="margin-top: 10px; display: flex; gap: 5px;">
+                        <input type="text" id="keyword-${cat}" placeholder="Add keyword" style="flex: 1; padding: 5px;">
+                        <button class="btn btn-primary" onclick="addKeyword('${cat}')">Add</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addKeyword(category) {
+            const input = document.getElementById(`keyword-${category}`);
+            const keyword = input.value.trim();
+            if (keyword && !categories[category].includes(keyword)) {
+                categories[category].push(keyword);
+                saveCategories();
+                updateCategoriesList();
+                // Re-categorize transactions
+                filteredTransactions.forEach(t => {
+                    if (matchCategory(t.Merchant) === category) {
+                        t.Category = category;
+                    }
+                });
+                updateAllViews();
+                input.value = '';
+            }
+        }
+
+        function removeKeyword(category, keyword) {
+            if (confirm(`Remove keyword "${keyword}" from "${category}"?`)) {
+                categories[category] = categories[category].filter(kw => kw !== keyword);
+                saveCategories();
+                updateCategoriesList();
+                // Re-categorize transactions
+                filteredTransactions.forEach(t => {
+                    if (t.Category === category && t.Merchant.toUpperCase().includes(keyword.toUpperCase())) {
+                        t.Category = matchCategory(t.Merchant);
+                    }
+                });
+                updateAllViews();
+            }
+        }
+
+        function updateUncategorizedMerchants() {
+            const container = document.getElementById('uncategorized-merchants');
+            const uncategorized = {};
+            
+            filteredTransactions.forEach(t => {
+                if (t.Category === 'Others' || !t.Category) {
+                    uncategorized[t.Merchant] = (uncategorized[t.Merchant] || 0) + 1;
+                }
+            });
+            
+            const sorted = Object.entries(uncategorized)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 50);
+            
+            if (sorted.length === 0) {
+                container.innerHTML = '<p style="color: #666;">All merchants are categorized!</p>';
+                return;
+            }
+            
+            let html = '<div style="max-height: 400px; overflow-y: auto;"><table class="data-table"><thead><tr><th>Merchant</th><th>Count</th><th>Assign Category</th></tr></thead><tbody>';
+            sorted.forEach(([merchant, count]) => {
+                html += `
+                    <tr>
+                        <td>${merchant}</td>
+                        <td>${count}</td>
+                        <td>
+                            <select onchange="assignCategory('${merchant.replace(/'/g, "\\'")}', this.value)" style="padding: 5px;">
+                                <option value="">Select...</option>
+                                ${Object.keys(categories).map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function assignCategory(merchant, category) {
+            if (!category) return;
+            
+            // Extract keyword from merchant
+            const keyword = extractKeyword(merchant);
+            
+            if (!categories[category].includes(keyword)) {
+                categories[category].push(keyword);
+                saveCategories();
+            }
+            
+            // Update transactions
+            filteredTransactions.forEach(t => {
+                if (t.Merchant === merchant) {
+                    t.Category = category;
+                }
+            });
+            
+            updateCategoriesList();
+            updateAllViews();
+        }
+
+        function extractKeyword(merchant) {
+            // Simple keyword extraction - take first meaningful word(s)
+            const words = merchant.split(/\s+/);
+            // Skip common words
+            const skipWords = ['THE', 'OF', 'AND', 'A', 'AN', 'IN', 'ON', 'AT', 'TO', 'FOR'];
+            for (const word of words) {
+                if (word.length > 2 && !skipWords.includes(word.toUpperCase())) {
+                    return word.toUpperCase();
+                }
+            }
+            return words[0] || merchant.substring(0, 10);
+        }
+
+        function addCategory() {
+            const name = document.getElementById('new-category').value.trim();
+            if (name && !categories[name]) {
+                categories[name] = [];
+                saveCategories();
+                updateCategoriesList();
+                document.getElementById('new-category').value = '';
+            }
+        }
+
+        function removeCategory(name) {
+            if (confirm(`Remove category "${name}"?`)) {
+                delete categories[name];
+                saveCategories();
+                updateCategoriesList();
+                // Update transactions
+                filteredTransactions.forEach(t => {
+                    if (t.Category === name) t.Category = 'Others';
+                });
+                updateAllViews();
+            }
+        }
+
+        function saveAISettings() {
+            aiEnabled = document.getElementById('ai-enabled').checked;
+            aiProvider = document.getElementById('ai-provider').value;
+            apiKey = document.getElementById('api-key').value;
+            
+            localStorage.setItem('aiEnabled', aiEnabled);
+            localStorage.setItem('aiProvider', aiProvider);
+            localStorage.setItem('apiKey', apiKey);
+            
+            alert('AI settings saved!');
+        }
+
+        function loadAISettings() {
+            aiEnabled = localStorage.getItem('aiEnabled') === 'true';
+            aiProvider = localStorage.getItem('aiProvider') || 'deepseek';
+            apiKey = localStorage.getItem('apiKey') || '';
+            
+            document.getElementById('ai-enabled').checked = aiEnabled;
+            document.getElementById('ai-provider').value = aiProvider;
+            document.getElementById('api-key').value = apiKey;
+        }
+
+        async function categorizeWithAI(merchants) {
+            if (!aiEnabled || !apiKey) return null;
+
+            const baseUrl = aiProvider === 'deepseek' 
+                ? 'https://api.deepseek.com/v1/chat/completions'
+                : 'https://api.openai.com/v1/chat/completions';
+            
+            const model = aiProvider === 'deepseek' ? 'deepseek-chat' : 'gpt-3.5-turbo';
+
+            const prompt = `Please categorize the following merchants.
+Available categories: ${Object.keys(categories).join(', ')}
+Return ONLY JSON array:
+[
+    {
+        "merchant": "Merchant name",
+        "category": "Category name",
+        "keyword": "Extracted keyword"
+    }
+]
+
+Merchants:
+${merchants.map((m, i) => `${i+1}. ${m}`).join('\n')}`;
+
+            try {
+                const response = await fetch(baseUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [{ role: 'user', content: prompt }]
+                    })
+                });
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+                const jsonMatch = content.match(/\[[\s\S]*\]/);
+                if (jsonMatch) {
+                    return JSON.parse(jsonMatch[0]);
+                }
+            } catch (error) {
+                console.error('AI categorization error:', error);
+            }
+            return null;
+        }
+
+        function downloadCSV() {
+            if (filteredTransactions.length === 0) {
+                alert('No data to download');
+                return;
+            }
+
+            const headers = ['Date', 'Merchant', 'Amount', 'Category'];
+            const rows = filteredTransactions.map(t => [
+                new Date(t.Date).toLocaleDateString(),
+                t.Merchant,
+                t.Amount,
+                t.Category || 'Others'
+            ]);
+
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bank_statement_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
+
