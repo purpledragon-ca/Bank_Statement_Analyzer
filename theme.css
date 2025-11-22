@@ -1,0 +1,126 @@
+/**
+ * Shared Color Theme for OtherWebPage Projects
+ * Light Yellow and Light Purple Theme
+ * 
+ * Usage: Include this file in your HTML projects
+ * <link rel="stylesheet" href="theme.css">
+ */
+
+:root {
+    /* Primary Colors - Light Yellow */
+    --color-yellow-light: #fef3c7;
+    --color-yellow-medium: #fde68a;
+    --color-yellow-dark: #fcd34d;
+    
+    /* Primary Colors - Light Purple */
+    --color-purple-light: #e9d5ff;
+    --color-purple-medium: #ddd6fe;
+    --color-purple-dark: #a78bfa;
+    
+    /* Text Colors */
+    --color-text-dark: #4a5568;
+    --color-text-medium: #666;
+    --color-text-light: #999;
+    
+    /* Background Colors */
+    --bg-gradient: linear-gradient(135deg, var(--color-yellow-light) 0%, var(--color-yellow-medium) 50%, var(--color-purple-light) 100%);
+    --bg-white: #ffffff;
+    --bg-light: #f8f9fa;
+    --bg-upload-area: #fffbeb;
+    --bg-upload-hover: #fef9c3;
+    --bg-upload-dragover: #fef3c7;
+    
+    /* Border Colors */
+    --border-yellow: var(--color-yellow-medium);
+    --border-purple: var(--color-purple-medium);
+    
+    /* Button Gradients */
+    --btn-primary-gradient: linear-gradient(135deg, var(--color-yellow-medium) 0%, var(--color-yellow-dark) 50%, var(--color-purple-light) 100%);
+    --btn-active-gradient: linear-gradient(135deg, var(--color-yellow-medium) 0%, var(--color-purple-light) 100%);
+    
+    /* Chart Colors */
+    --chart-yellow: var(--color-yellow-medium);
+    --chart-purple: var(--color-purple-dark);
+    --chart-yellow-light: rgba(253, 230, 138, 0.2);
+    --chart-purple-light: rgba(167, 139, 250, 0.2);
+    
+    /* Chart Palette */
+    --chart-colors: #fef3c7, #fde68a, #e9d5ff, #ddd6fe, #fcd34d, #fbbf24, #c4b5fd, #e9d5ff;
+}
+
+/* Base Styles */
+body {
+    background: var(--bg-gradient);
+}
+
+/* Header Styles */
+.header-gradient {
+    background: var(--bg-gradient);
+    color: var(--color-text-dark);
+}
+
+/* Button Styles */
+.btn-primary-theme {
+    background: var(--btn-primary-gradient);
+    color: var(--color-text-dark);
+    font-weight: 600;
+}
+
+.btn-primary-theme:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(253, 230, 138, 0.4);
+}
+
+/* Upload Area Styles */
+.upload-area-theme {
+    border: 3px dashed var(--border-yellow);
+    background: var(--bg-upload-area);
+}
+
+.upload-area-theme:hover {
+    background: var(--bg-upload-hover);
+    border-color: var(--border-purple);
+}
+
+.upload-area-theme.dragover {
+    background: var(--bg-upload-dragover);
+}
+
+/* Tab Styles */
+.tab-active-theme {
+    color: var(--color-purple-dark);
+    border-bottom: 3px solid var(--color-yellow-medium);
+}
+
+/* Input Focus Styles */
+.input-focus-theme:focus {
+    border-color: var(--color-yellow-medium);
+}
+
+/* Toggle Switch Styles */
+.toggle-active-theme {
+    background-color: var(--color-purple-light);
+}
+
+/* Dimension Button Styles */
+.dimension-btn-theme {
+    border: 2px solid var(--color-yellow-medium);
+    color: var(--color-purple-dark);
+}
+
+.dimension-btn-theme.active {
+    background: var(--btn-active-gradient);
+    color: var(--color-text-dark);
+}
+
+.dimension-btn-theme:hover {
+    background: var(--bg-upload-hover);
+}
+
+/* Metric Card Styles */
+.metric-card-theme {
+    background: var(--bg-gradient);
+    color: var(--color-text-dark);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
