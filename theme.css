@@ -124,3 +124,30 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+/* Footer Styles */
+.footer-theme {
+    background: var(--bg-gradient);
+    color: var(--color-text-dark);
+    padding: 20px;
+    text-align: center;
+    border-top: 1px solid rgba(167, 139, 250, 0.2);
+    margin-top: 40px;
+    font-size: 0.9em;
+}
+
+.footer-theme p {
+    margin: 5px 0;
+    color: var(--color-text-medium);
+}
+
+.footer-theme a {
+    color: var(--color-purple-dark);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.footer-theme a:hover {
+    color: var(--color-yellow-dark);
+    text-decoration: underline;
+}
+
